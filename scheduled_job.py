@@ -25,8 +25,9 @@ def main():
         )
         
         # Perform an incremental update of the data cache
-        print("ℹ️ Calling update_cache_incrementally to update cache...")
-        analyzer.update_cache_incrementally()
+        # This function handles both full downloads and incremental updates automatically.
+        print("ℹ️ Calling download_bitcoin_data to update cache...")
+        analyzer.download_bitcoin_data()
         
         print("✅ Scheduled daily data update job completed successfully.")
         
