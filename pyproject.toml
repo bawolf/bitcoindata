@@ -1,0 +1,67 @@
+[project]
+name = "bitcoin-ath-analyzer"
+version = "0.1.0"
+description = "A tool to analyze Bitcoin's distance from all-time high and contextualize current price action within historical distributions"
+authors = [
+    {name = "Bitcoin Data Analysis Team"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+keywords = ["bitcoin", "cryptocurrency", "data-analysis", "all-time-high", "trading"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "yfinance>=0.2.0",
+    "requests>=2.31.0",
+    "scipy>=1.10.0",
+    "plotly>=5.15.0",
+    "google-cloud-storage>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+web = [
+    "flask>=2.3.0",
+    "gunicorn>=21.0.0",
+]
+
+[project.scripts]
+bitcoin-ath = "bitcoin_ath_analyzer:main"
+bitcoin-ath-web = "web_deployment_example:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "NPY", "RUF"]
+ignore = ["E501", "S101", "PLR0913", "PLR0912", "PLR0915"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39'] 
