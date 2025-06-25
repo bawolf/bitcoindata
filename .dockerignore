@@ -1,0 +1,59 @@
+# Development files
+node_modules/
+.git/
+.gitignore
+.envrc
+.env
+*.log
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation and development files
+dev-setup.md
+COMPONENT_ABSTRACTIONS.md
+TYPESCRIPT_TAILWIND_REFACTOR_SUMMARY.md
+DEPLOYMENT_GUIDE.md
+# Keep README.md as it may be referenced by pyproject.toml
+# *.md
+
+# Build artifacts (will be created during build)
+static/dist/
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Local data files (these should be in GCS)
+*.csv
+*.json
+!package*.json
+!tsconfig*.json
+
+# Deployment scripts (not needed in container)
+deploy.sh
+clear_gcs_cache.py 

@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .essay-container {
+    @apply max-w-4xl mx-auto px-5 py-10;
+  }
+
+  .hero {
+    @apply text-center mb-16 py-10;
+  }
+
+  .hero h1 {
+    @apply text-5xl md:text-6xl font-bold text-text-dark mb-5 leading-tight;
+  }
+
+  .hero .subtitle {
+    @apply text-xl text-text-light max-w-2xl mx-auto;
+  }
+
+  .section {
+    @apply mb-20;
+  }
+
+  .section h2 {
+    @apply text-4xl font-semibold mb-5 text-text-dark;
+  }
+
+  .section h3 {
+    @apply text-2xl font-semibold mb-4 text-text-dark;
+  }
+
+  .section p {
+    @apply text-lg mb-5 text-text-dark leading-relaxed;
+  }
+
+  .metric-formula {
+    @apply bg-gray-50 border-l-4 border-bitcoin-orange p-5 my-8 rounded-r-lg font-mono text-base;
+  }
+
+  .current-stats {
+    @apply bg-card-bg rounded-xl p-8 my-10 shadow-card border border-card-border;
+  }
+
+  .stats-grid {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-6 mt-6;
+  }
+
+  .stat-item {
+    @apply text-center;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold text-bitcoin-orange mb-1;
+  }
+
+  .stat-label {
+    @apply text-sm text-text-light font-medium;
+  }
+
+  .hardest-days {
+    @apply bg-card-bg rounded-xl p-8 my-10 shadow-card border border-card-border;
+  }
+
+  .day-item {
+    @apply flex justify-between items-center p-5 my-3 rounded-lg border-l-4 border-red-500 transition-all duration-200 ease-in-out;
+    background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+  }
+
+  .day-item:hover {
+    @apply -translate-y-0.5 shadow-day-item;
+  }
+
+  .day-info {
+    @apply flex-1;
+  }
+
+  .day-rank {
+    @apply text-xl font-bold text-red-500 mb-1;
+  }
+
+  .day-date {
+    @apply font-semibold text-text-dark mb-0.5;
+  }
+
+  .day-price {
+    @apply text-sm text-text-light;
+  }
+
+  .day-loss {
+    @apply text-right text-red-500 font-semibold;
+  }
+
+  .day-loss-pct {
+    @apply text-xl font-bold mb-0.5;
+  }
+
+  .day-loss-dollars {
+    @apply text-sm opacity-80;
+  }
+
+  .chart-container {
+    @apply bg-card-bg rounded-xl p-8 my-10 shadow-card border border-card-border;
+  }
+
+  .chart-title {
+    @apply text-xl font-semibold mb-4 text-text-dark;
+  }
+
+  .chart-description {
+    @apply text-base text-text-light mb-6 leading-relaxed;
+  }
+
+  .insight-box {
+    @apply rounded-xl p-6 my-8 border-l-4 border-green-500;
+    background: linear-gradient(120deg, #a8e6cf 0%, #dcedc1 100%);
+  }
+
+  .insight-box h4 {
+    @apply text-xl font-semibold mb-3 text-text-dark;
+  }
+
+  .insight-box p {
+    @apply mb-0 text-text-dark;
+  }
+
+  .loading {
+    @apply text-center py-16 px-5 text-text-light text-lg;
+  }
+
+  .error {
+    @apply text-red-500 text-center py-10 px-5 bg-red-50 rounded-lg border border-red-200 my-5;
+  }
+
+  .update-time {
+    @apply text-center text-text-light text-sm mt-10 pt-5 border-t border-card-border;
+  }
+
+  .highlight {
+    @apply font-semibold bg-gradient-to-r from-yellow-400 via-orange-500 to-blue-600 bg-clip-text text-transparent;
+  }
+}
+
+:root {
+  --bitcoin-orange: #F7931A;
+  --text-dark: #2c3e50;
+  --text-light: #7f8c8d;
+  --background: #fefefe;
+  --card-bg: #ffffff;
+  --border-light: #e8ecef;
+  --green: #27ae60;
+  --red: #e74c3c;
+  --yellow: #f39c12;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: var(--text-dark);
+  background: var(--background);
+}
+
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2.5rem; }
+  .hero .subtitle { font-size: 1.1rem; }
+  .essay-container { padding: 20px 15px; }
+  .stats-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+} 

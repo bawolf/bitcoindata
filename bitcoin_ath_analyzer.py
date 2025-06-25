@@ -382,53 +382,6 @@ class BitcoinATHAnalyzer:
             
         return report
 
-    def update_cache_incrementally(self):
-        """
-        Efficiently updates the data cache by fetching only new data since the
-        last recorded entry.
-        """
-        if not self._cache_exists():
-            print("Cache not found. Performing full data download.")
-            self.download_bitcoin_data()
-            return
-
-        print("Cache found. Performing incremental update.")
-        self.data = self._load_data_from_cache()
-        last_date = pd.to_datetime(self.data['Date']).max()
-        today = pd.to_datetime('today').normalize()
-
-        if last_date >= today:
-            print("✅ Data is already up-to-date. No update needed.")
-            return
-
-        start_date = last_date + pd.Timedelta(days=1)
-        print(f"Fetching new data from {start_date.strftime('%Y-%m-%d')} to {today.strftime('%Y-%m-%d')}...")
-
-        try:
-            new_data = yf.download('BTC-USD', start=start_date, progress=False)
-            new_data.reset_index(inplace=True)
-            
-            if new_data.empty:
-                print("No new data found from yfinance.")
-                return
-
-            # Ensure 'Date' column is in datetime format for proper merging
-            new_data['Date'] = pd.to_datetime(new_data['Date']).dt.normalize()
-
-            # Combine, remove any potential duplicates, and sort
-            combined_data = pd.concat([self.data, new_data]).drop_duplicates(subset=['Date'], keep='last')
-            self.data = combined_data.sort_values(by='Date').reset_index(drop=True)
-            
-            # Reprocess all data to ensure ATH is calculated correctly with new values
-            self.load_data(process=True)
-            
-            self._save_data_to_cache(self.data)
-            print(f"✅ Data cache successfully updated with {len(new_data)} new row(s).")
-
-        except Exception as e:
-            print(f"❌ Failed to update data: {e}")
-
-
 def main():
     """
     Example usage of the BitcoinATHAnalyzer

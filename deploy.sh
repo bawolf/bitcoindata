@@ -16,15 +16,15 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 
 if [ -z "$WEB_SERVICE_NAME" ]; then
-    echo "❌ ERROR: WEB_SERVICE_NAME environment variable is not set."
+    echo "ℹ️  WEB_SERVICE_NAME environment variable is not set."
     echo "Using default value 'bitcoin-ath-dashboard'."
-    WEB_SERVICE_NAME="bitcoin-ath-dashboard"
+    SERVICE_NAME="bitcoin-ath-dashboard"
 else
     SERVICE_NAME="$WEB_SERVICE_NAME"
 fi
 
 if [ -z "$REGION" ]; then
-    echo "❌ ERROR: REGION environment variable is not set."
+    echo "ℹ️  REGION environment variable is not set."
     echo "Using default value 'us-central1'."
     REGION="us-central1"
 fi
@@ -48,7 +48,10 @@ echo "----------------------------------------"
 # 1. Build the container image using Google Cloud Build.
 # This command builds the image from the Dockerfile in the current directory
 # and tags it in the Google Container Registry (gcr.io).
-echo "📦 Building container image..."
+# The multi-stage build will:
+# - Stage 1: Build React/TypeScript frontend with Node.js
+# - Stage 2: Copy built frontend and set up Python backend
+echo "📦 Building container image (React/TypeScript + Python)..."
 gcloud builds submit --tag "gcr.io/$PROJECT_ID/$SERVICE_NAME" --quiet
 
 # 2. Deploy the new container image to Cloud Run.

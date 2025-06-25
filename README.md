@@ -102,8 +102,9 @@ Open your browser to [http://localhost:5000](http://localhost:5000) to see the d
 
 ### Prerequisites
 
-- Python 3.8+
-- [UV Package Manager](https://github.com/astral-sh/uv)
+- **Python 3.8+** - Backend API and data processing
+- **Node.js 18+** - Frontend build tools and React development
+- **[UV Package Manager](https://github.com/astral-sh/uv)** - Python dependency management
 
 ### Install UV
 
@@ -123,22 +124,68 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 # Clone/navigate to project directory
 cd bitcoin-data
 
-# Install all dependencies
-uv sync
-
-# Install with development tools
-uv sync --extra dev
-
-# Install for web deployment
+# Install Python dependencies
 uv sync --extra web
+
+# Install Node.js dependencies (for React/TypeScript frontend)
+npm install
+
+# For development with both frontend and backend
+uv sync --extra dev
 ```
+
+#### Frontend Dependencies
+
+The React/TypeScript frontend includes:
+
+- **React 18** - Modern UI framework
+- **TypeScript** - Type safety and enhanced developer experience
+- **Vite** - Fast build tool and development server
+- **Tailwind CSS** - Utility-first CSS framework
+- **Plotly.js** - Interactive data visualizations
+- **PostCSS & Autoprefixer** - CSS processing and browser compatibility
 
 ## 🚀 Usage
 
 ### Web Application
 
+#### Development Mode (React + Flask)
+
+For development, you'll run both the React/TypeScript frontend and Python backend:
+
 ```bash
-# Start development server with hot reload
+# Terminal 1: Start Flask API server
+uv run python web_deployment_example_react.py
+
+# Terminal 2: Start Vite dev server (React/TypeScript)
+npm run dev
+```
+
+The Vite dev server (http://localhost:5173) will proxy API requests to Flask (http://localhost:8080), providing:
+
+- **Hot Reload**: Instant updates when you modify React components
+- **TypeScript Checking**: Real-time type checking and error highlighting
+- **Tailwind CSS**: Live CSS processing and optimization
+- **API Integration**: Seamless communication between frontend and backend
+
+#### Production Mode (Single Server)
+
+For production-like testing locally:
+
+```bash
+# Build the React app first
+npm run build
+
+# Start Flask server (serves built React app)
+uv run python web_deployment_example_react.py
+```
+
+#### Legacy Mode (Original HTML)
+
+The original single-file HTML version is still available:
+
+```bash
+# Start original Flask server
 uv run python web_deployment_example.py
 ```
 
@@ -412,19 +459,55 @@ gcloud storage cp bitcoin_data_cache.csv gs://$GCS_BUCKET_NAME/bitcoin_data_cach
 
 ### 5. Build and Deploy the Web Application
 
+The application uses a **React/TypeScript frontend** with a **Python Flask backend**. The deployment uses a multi-stage Docker build:
+
+1. **Stage 1**: Build the React/TypeScript frontend with Node.js and Vite
+2. **Stage 2**: Copy the built frontend and set up the Python backend
+
+#### Option A: Using the Deploy Script (Recommended)
+
+The easiest way to deploy is using the provided `deploy.sh` script:
+
+```bash
+# Test the build locally first (optional but recommended)
+chmod +x test-deployment.sh
+./test-deployment.sh
+
+# Deploy to Cloud Run
+chmod +x deploy.sh
+./deploy.sh
+```
+
+The deployment script will automatically:
+
+- Build the multi-stage Docker image (React + Python)
+- Deploy to Cloud Run with proper environment variables
+- Provide you with the service URL
+
+The test script verifies:
+
+- TypeScript compilation works
+- React build completes successfully
+- Docker multi-stage build works
+- Container starts and responds to requests
+
+#### Option B: Manual Deployment
+
+If you prefer manual control, follow these steps:
+
 First, create a repository in Google Artifact Registry to store your container images.
 
 ```bash
-gcloud artifacts repositories create bitcoin-app \\
-    --repository-format=docker \\
-    --location=$REGION \\
+gcloud artifacts repositories create bitcoin-app \
+    --repository-format=docker \
+    --location=$REGION \
     --description="Docker repository for bitcoin-ath-analyzer"
 ```
 
 Build the container image using Cloud Build and deploy it to Cloud Run.
 
 ```bash
-# Build the container image and store it in Artifact Registry
+# Build the multi-stage container image (React/TypeScript + Python)
 gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/bitcoin-app/$WEB_SERVICE_NAME
 
 # Deploy to Cloud Run
@@ -435,6 +518,26 @@ gcloud run deploy $WEB_SERVICE_NAME \
   --set-env-vars="GCS_BUCKET_NAME=$GCS_BUCKET_NAME" \
   --max-instances "1"
 ```
+
+#### Frontend Architecture
+
+The React/TypeScript frontend provides:
+
+- **Type Safety**: Full TypeScript integration with comprehensive type definitions
+- **Modern UI**: Tailwind CSS with custom Bitcoin-themed design system
+- **Interactive Charts**: Plotly.js visualizations with real-time data
+- **Responsive Design**: Mobile-friendly interface with utility-first CSS
+- **Component Architecture**: Reusable components with error boundaries
+- **Hot Reload**: Development server with instant updates
+
+#### Build Process
+
+The Dockerfile handles the complete build process:
+
+1. **Frontend Build**: `npm run build` compiles TypeScript and processes Tailwind CSS
+2. **Asset Optimization**: Vite bundles and optimizes all frontend assets
+3. **Backend Integration**: Flask serves the built React app from `static/dist/`
+4. **Production Ready**: Gunicorn WSGI server for high-performance deployment
 
 After deployment, `gcloud` will provide you with the public URL for your dashboard.
 
