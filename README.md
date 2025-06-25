@@ -357,7 +357,7 @@ First, set up your environment variables. Replace the placeholder values with yo
 
 #### Using direnv (Recommended)
 
-1.  Create a file named `.env` in the root of the project. Because `.env` is listed in `.gitignore`, it will not be committed to your repository.
+1.  Create a file named `.envrc` in the root of the project. Because `.envrc` is listed in `.gitignore`, it will not be committed to your repository.
 
 2.  Copy the following content into your new `.env` file and fill in the placeholder values with your specific GCP details:
 
