@@ -183,6 +183,55 @@ def register_routes(app):
             app.logger.error(f"Error in /api/distribution-histogram: {e}", exc_info=True)
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    @app.route('/api/hardest-days')
+    def api_hardest_days():
+        """API endpoint to get the hardest days to HODL (highest distance from ATH)"""
+        analyzer = current_app.analyzer
+        if analyzer is None or analyzer.ath_data is None or analyzer.ath_data.empty:
+            return jsonify({'success': False, 'error': 'No analysis data available.'}), 500
+        
+        try:
+            # Get top 5 hardest days (highest distance from ATH)
+            hardest_days = analyzer.ath_data.nlargest(5, 'Distance_from_ATH_Pct')
+            
+            hardest_data = []
+            for date, row in hardest_days.iterrows():
+                hardest_data.append({
+                    'date': date.strftime('%Y-%m-%d'),
+                    'distance_pct': float(row['Distance_from_ATH_Pct']),
+                    'price': float(row['High']),
+                    'ath_at_time': float(row['ATH']),
+                    'dollar_loss': float(row['ATH'] - row['High'])
+                })
+            
+            # Count easy days (when daily high equals ATH)
+            easy_days = analyzer.ath_data[analyzer.ath_data['Distance_from_ATH_Pct'] == 0.0]
+            easy_days_count = len(easy_days)
+            total_days = len(analyzer.ath_data)
+            easy_days_pct = (easy_days_count / total_days) * 100
+            
+            # Get some recent easy days for context
+            recent_easy_days = easy_days.tail(5)
+            easy_days_data = []
+            for date, row in recent_easy_days.iterrows():
+                easy_days_data.append({
+                    'date': date.strftime('%Y-%m-%d'),
+                    'price': float(row['High'])
+                })
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'hardest_days': hardest_data,
+                    'easy_days_count': easy_days_count,
+                    'easy_days_percentage': float(easy_days_pct),
+                    'total_days': total_days,
+                    'recent_easy_days': easy_days_data
+                }
+            })
+        except Exception as e:
+            app.logger.error(f"Error in /api/hardest-days: {e}", exc_info=True)
+            return jsonify({'success': False, 'error': str(e)}), 500
 
 def run_scheduled_update(app):
     """
