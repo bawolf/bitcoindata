@@ -146,7 +146,8 @@ class BitcoinPriceAPI:
             
             # Convert to DataFrame
             df = pd.DataFrame(data, columns=['timestamp', 'Open', 'High', 'Low', 'Close'])
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            # Ensure the timestamp is timezone-aware (UTC) to match yfinance data
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
             df.set_index('timestamp', inplace=True)
             
             return df

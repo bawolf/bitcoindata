@@ -139,9 +139,6 @@ uv sync --extra web
 
 ```bash
 # Start development server with hot reload
-uv run bitcoin-ath-web
-
-# Alternative: direct Python execution
 uv run python web_deployment_example.py
 ```
 

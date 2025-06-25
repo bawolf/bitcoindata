@@ -48,7 +48,6 @@ web = [
 
 [project.scripts]
 bitcoin-ath = "bitcoin_ath_analyzer:main"
-bitcoin-ath-web = "web_deployment_example:main"
 
 [build-system]
 requires = ["hatchling"]

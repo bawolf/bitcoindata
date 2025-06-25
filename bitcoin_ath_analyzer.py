@@ -10,6 +10,10 @@ import os
 import json
 import io
 from google.cloud import storage
+import tempfile
+
+# Import the reliable API client
+from api_integrations import BitcoinPriceAPI
 
 warnings.filterwarnings('ignore')
 
@@ -20,10 +24,18 @@ class BitcoinATHAnalyzer:
     """
     
     def __init__(self, data_cache_file='bitcoin_data_cache.csv', gcs_bucket_name=None):
+        # Set yfinance cache to a temporary directory to avoid issues in
+        # read-only environments like Cloud Run.
+        # This is no longer strictly necessary but is good practice.
+        yf.set_tz_cache_location(os.path.join(tempfile.gettempdir(), 'yfinance_cache'))
+        
         self.data = None
         self.ath_data = None
         self.gcs_bucket_name = gcs_bucket_name
         self.cache_file_name = data_cache_file  # Used for local file and GCS blob name
+        
+        # Use our reliable API client
+        self.price_api = BitcoinPriceAPI()
 
         if self.gcs_bucket_name:
             self.storage_client = storage.Client()
@@ -77,9 +89,8 @@ class BitcoinATHAnalyzer:
                 return self.data
             else:
                 print(f"Updating cache from {last_cached_date} to {end_date}...")
-                # Download only new data
-                new_start = (pd.to_datetime(last_cached_date) + timedelta(days=1)).strftime('%Y-%m-%d')
-                new_data = self._fetch_data(new_start, end_date)
+                # For incremental updates in production, use the reliable CoinGecko API.
+                new_data = self._fetch_incremental_data_coingecko()
                 
                 if not new_data.empty:
                     # Combine cached and new data
@@ -88,29 +99,67 @@ class BitcoinATHAnalyzer:
                     self._save_cache()
                     print(f"Updated cache with {len(new_data)} new days")
                 else:
-                    print("No new data to add")
+                    print("No new data to add from CoinGecko")
                     self.data = cached_data
                 return self.data
         else:
-            print(f"Downloading Bitcoin data from {start_date} to {end_date}...")
-            self.data = self._fetch_data(start_date, end_date)
+            print(f"Cache not found. Performing full historical download with yfinance...")
+            self.data = self._fetch_historical_data_yfinance(start_date, end_date)
             self._save_cache()
             return self.data
     
-    def _fetch_data(self, start_date, end_date):
-        """Fetch data from yfinance API"""
-        btc = yf.Ticker("BTC-USD")
-        data = btc.history(start=start_date, end=end_date)
-        
-        if data.empty:
-            raise ValueError("No data downloaded. Check your date range and internet connection.")
+    def _fetch_historical_data_yfinance(self, start_date, end_date):
+        """Fetch full historical data from yfinance API (ideal for local, one-off seeding)."""
+        try:
+            print(f"Attempting to fetch data for BTC-USD from {start_date} to {end_date}")
+            btc = yf.Ticker("BTC-USD")
+            data = btc.history(start=start_date, end=end_date)
             
-        print(f"Successfully downloaded {len(data)} days of Bitcoin data")
-        return data
+            if data.empty:
+                raise ValueError("yfinance returned an empty DataFrame. This may indicate a network issue or an API block.")
+                
+            print(f"Successfully downloaded {len(data)} days of Bitcoin data")
+            return data
+        except Exception as e:
+            print(f"An exception occurred while fetching data from yfinance: {e}")
+            raise ValueError(f"No data downloaded. Underlying error: {e}")
+
+    def _fetch_incremental_data_coingecko(self, days=7):
+        """Fetch recent data from CoinGecko API (for reliable daily updates)."""
+        try:
+            print(f"Attempting to fetch recent {days} days from CoinGecko...")
+            data = self.price_api.get_daily_ohlcv_coingecko(days=days)
+
+            if data.empty:
+                raise ValueError("CoinGecko API returned an empty DataFrame.")
+            
+            if 'Volume' not in data.columns:
+                data['Volume'] = 0
+
+            print(f"Successfully downloaded {len(data)} days of Bitcoin data from CoinGecko")
+            return data
+        except Exception as e:
+            print(f"An exception occurred while fetching data from CoinGecko: {e}")
+            # In case of failure, it's better to continue with stale data than to crash.
+            # Return an empty DataFrame to signify that no new data was added.
+            return pd.DataFrame()
     
     def _save_cache(self):
         """Save current data to cache file (local or GCS)"""
         if self.data is not None:
+            # Add a validation step to prevent writing future-dated or incomplete daily data to the cache.
+            # This makes the caching mechanism more robust.
+            today = pd.to_datetime('today', utc=True).normalize()
+            original_rows = len(self.data)
+            
+            # Filter to include only data for days that have already closed (i.e., before today).
+            self.data = self.data[self.data.index < today]
+            new_rows = len(self.data)
+            
+            if new_rows < original_rows:
+                rows_removed = original_rows - new_rows
+                print(f"⚠️  Removed {rows_removed} rows (future-dated or current day) before caching.")
+
             if self.bucket:
                 blob = self.bucket.blob(self.cache_file_name)
                 csv_buffer = io.StringIO()

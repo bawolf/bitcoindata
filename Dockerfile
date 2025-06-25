@@ -31,4 +31,6 @@ EXPOSE 8080
 
 # Define the command to run the application using the virtual environment's gunicorn.
 # Use the shell form of CMD to allow shell variable expansion for $PORT.
-CMD .venv/bin/gunicorn --workers 2 --bind "0.0.0.0:$PORT" web_deployment_example:app 
+# The --preload flag loads application code before forking workers.
+# This ensures that one-time initialization (like data download) happens only once.
+CMD .venv/bin/gunicorn --workers 2 --bind "0.0.0.0:$PORT" --preload web_deployment_example:app 
