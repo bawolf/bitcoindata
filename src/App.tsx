@@ -209,7 +209,17 @@ function App() {
       </Section>
 
       <div className="text-center text-text-light text-sm mt-10 pt-5 border-t border-card-border">
-        Last updated: {new Date().toLocaleString()}
+        <div className="mb-2">Last updated: {new Date().toLocaleString()}</div>
+        <div>
+          <a
+            href="https://github.com/bawolf/bitcoindata"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-bitcoin-orange hover:text-orange-600 transition-colors"
+          >
+            View on GitHub
+          </a>
+        </div>
       </div>
     </div>
   );
