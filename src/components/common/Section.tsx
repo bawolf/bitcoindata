@@ -1,3 +1,4 @@
+import { cn } from '@/utils/cn';
 import type { SectionProps } from '@/types';
 
 export default function Section({
@@ -6,8 +7,10 @@ export default function Section({
   className = '',
 }: SectionProps) {
   return (
-    <div className={`section ${className}`}>
-      {title && <h2 className="section-title">{title}</h2>}
+    <div className={cn('mb-20', className)}>
+      {title && (
+        <h2 className="text-4xl font-semibold mb-5 text-text-dark">{title}</h2>
+      )}
       {children}
     </div>
   );

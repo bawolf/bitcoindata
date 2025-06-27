@@ -48,7 +48,6 @@ COPY --from=frontend /app/static/dist ./static/dist
 COPY pyproject.toml uv.lock ./
 COPY README.md ./
 COPY *.py ./
-COPY templates/ ./templates/
 
 # Install Python dependencies. uv will create a virtual environment in /app/.venv
 RUN uv sync --extra web
@@ -59,4 +58,4 @@ EXPOSE 8080
 # Define the command to run the application using the virtual environment's gunicorn.
 # The --preload flag loads application code before forking workers.
 # This ensures that one-time initialization (like data download) happens only once.
-CMD [".venv/bin/gunicorn", "--workers", "2", "--bind", "0.0.0.0:8080", "--preload", "web_deployment_example_react:app"] 
+CMD [".venv/bin/gunicorn", "--workers", "2", "--bind", "0.0.0.0:8080", "--preload", "app:app"] 

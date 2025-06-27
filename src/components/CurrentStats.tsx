@@ -1,5 +1,10 @@
 import { LoadingErrorWrapper } from '@/components/common';
-import { formatToK } from '@/utils/helpers';
+import {
+  formatRoundedNumber,
+  cn,
+  getSentimentColor,
+  getSentimentBg,
+} from '@/utils';
 import type { CurrentStatsProps } from '@/types';
 
 export default function CurrentStats({
@@ -14,36 +19,58 @@ export default function CurrentStats({
       loadingMessage="Loading current stats..."
     >
       {currentAnalysis && (
-        <div className="current-stats">
-          <p>
-            As of today, here's where Bitcoin stands in the emotional difficulty
-            spectrum:
-          </p>
-          <div className="stats-grid">
-            <div className="stat-item">
-              <div className="stat-value">
-                {currentAnalysis.current_distance_from_ath.toFixed(1)}%
+        <div
+          className={cn(
+            'rounded-xl p-8 my-10 shadow-card border-2 transition-colors duration-300',
+            getSentimentBg(currentAnalysis.current_percent_of_ath)
+          )}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-black mb-1">
+                ${formatRoundedNumber(currentAnalysis.current_price)}
               </div>
-              <div className="stat-label">Distance from ATH</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-value">
-                ${formatToK(currentAnalysis.current_price)}
+              <div className="text-sm text-text-light font-medium">
+                Current Price
               </div>
-              <div className="stat-label">Current Price</div>
             </div>
-            <div className="stat-item">
-              <div className="stat-value">
-                ${formatToK(currentAnalysis.dollar_difference_from_ath)}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-black mb-1">
+                $
+                {formatRoundedNumber(
+                  currentAnalysis.dollar_difference_from_ath
+                )}
               </div>
-              <div className="stat-label">Dollars Below ATH</div>
+              <div className="text-sm text-text-light font-medium">
+                Dollars Below ATH
+              </div>
             </div>
-            <div className="stat-item">
-              <div className="stat-value">
+            <div className="text-center">
+              <div
+                className={cn(
+                  'text-3xl font-bold mb-1 transition-colors duration-300',
+                  getSentimentColor(currentAnalysis.current_percent_of_ath)
+                )}
+              >
+                {currentAnalysis.current_percent_of_ath.toFixed(1)}%
+              </div>
+              <div className="text-sm text-text-light font-medium">
+                Percent of previous ATH (PoPATH)
+              </div>
+            </div>
+            <div className="text-center">
+              <div
+                className={cn(
+                  'text-3xl font-bold mb-1',
+                  currentAnalysis.percentile_rank > 50
+                    ? 'text-green-600'
+                    : 'text-red-500'
+                )}
+              >
                 {currentAnalysis.percentile_rank.toFixed(0)}%
               </div>
-              <div className="stat-label">
-                of days are harder to hold than today
+              <div className="text-sm text-text-light font-medium">
+                of days were further from ATH
               </div>
             </div>
           </div>

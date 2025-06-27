@@ -144,7 +144,7 @@ The backend setup:
 
 4. **Runtime Configuration**
    ```dockerfile
-   CMD .venv/bin/gunicorn --workers 2 --bind "0.0.0.0:$PORT" --preload web_deployment_example_react:app
+   CMD .venv/bin/gunicorn --workers 2 --bind "0.0.0.0:$PORT" --preload app:app
    ```
 
 ## File Structure for Deployment
@@ -161,7 +161,7 @@ bitcoin-data/
 ├── vite.config.js           # Vite build configuration
 ├── src/                     # React/TypeScript source code
 ├── pyproject.toml           # Python dependencies
-├── web_deployment_example_react.py  # Flask app with React integration
+├── app.py  # Flask app with React integration
 └── static/                  # Build output directory
     └── dist/               # Created during build
 ```
@@ -307,7 +307,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 
 ```bash
 # Terminal 1: Flask API
-uv run python web_deployment_example_react.py
+uv run python app.py
 
 # Terminal 2: Vite dev server
 npm run dev
@@ -318,7 +318,7 @@ npm run dev
 ```bash
 # Build and serve from single process
 npm run build
-uv run python web_deployment_example_react.py
+uv run python app.py
 ```
 
 ### Cloud Deployment

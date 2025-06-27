@@ -1,6 +1,6 @@
 // Bitcoin Analysis Data Types
 export interface CurrentAnalysis {
-  current_distance_from_ath: number;
+  current_percent_of_ath: number;
   current_price: number;
   dollar_difference_from_ath: number;
   percentile_rank: number;
@@ -8,7 +8,7 @@ export interface CurrentAnalysis {
 
 export interface HardestDay {
   date: string;
-  distance_pct: number;
+  percent_of_ath: number;
   price: number;
   ath_at_time: number;
   dollar_loss: number;
@@ -23,30 +23,49 @@ export interface HardestDaysData {
     date: string;
     price: number;
   }>;
+  first_date: string;
 }
 
 export interface HistoricalData {
   dates: string[];
-  distances: number[];
+  percentages: number[];
   ath_values: number[];
   high_values: number[];
 }
 
 export interface DistributionData {
-  bin_centers: number[];
-  counts: number[];
-  mean_distance: number;
-  median_distance: number;
-  std_distance: number;
-  coefficient_of_variation: number;
+  histogram: {
+    bins: number[];
+    counts: number[];
+  };
+  cumulative: {
+    percentages: number[];
+    cumulative_percentages: number[];
+  };
+  statistics: {
+    mean_percent: number;
+    median_percent: number;
+    std_percent: number;
+    coefficient_of_variation: number;
+    min_percent: number;
+    max_percent: number;
+    days_at_ath: number;
+    total_days: number;
+  };
   volatility_bands: {
     mean_minus_2std: number;
     mean_minus_1std: number;
     mean_plus_1std: number;
     mean_plus_2std: number;
   };
-  cumulative_distances: number[];
-  cumulative_percentages: number[];
+  percentiles: {
+    '10th': number;
+    '25th': number;
+    '75th': number;
+    '90th': number;
+    '95th': number;
+    '99th': number;
+  };
 }
 
 // API Response Types

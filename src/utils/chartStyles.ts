@@ -64,7 +64,7 @@ export const createMarker = (
   mode: 'markers+text',
   name: text,
   marker: { color, size, symbol: 'circle' },
-  text: [text],
+
   textposition: 'top center',
   textfont: { size: 12, color, family: 'Arial Black' },
 });
@@ -81,8 +81,8 @@ export const HOVER_TEMPLATES = {
   price: '<b>%{x}</b><br>Price: $%{y:,.0f}<extra></extra>',
   percentage: '<b>%{x}</b><br>%{y:.1f}%<extra></extra>',
   count: '<b>%{x:.1f}%</b><br>Days: %{y}<extra></extra>',
-  cumulative:
-    '<b>Distance: %{x:.1f}%</b><br>Percentile: %{y:.1f}%<extra></extra>',
+  cumulativeFlipped:
+    'In %{y:.1f}% of days, Bitcoin was at<br>%{x:.1f}% or less of its ATH <extra></extra>',
 };
 
 // Common Layout Configurations
@@ -95,6 +95,47 @@ export const BASE_LAYOUT = {
   },
   showlegend: true,
   legend: { x: 0.65, y: 0.95 },
+};
+
+// Mobile-optimized layout with better legend positioning
+export const MOBILE_LAYOUT = {
+  ...BASE_LAYOUT,
+  margin: { t: 20, r: 10, b: 80, l: 50 }, // Increased bottom margin for legend
+  font: {
+    family: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
+    size: 12,
+  },
+  legend: {
+    x: 0.5,
+    y: -0.15, // Position below the chart
+    xanchor: 'center',
+    orientation: 'h',
+  },
+};
+
+// Utility function to get responsive layout
+export const getResponsiveLayout = (baseLayout: any = {}) => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  return {
+    ...(isMobile ? MOBILE_LAYOUT : BASE_LAYOUT),
+    ...baseLayout,
+  };
+};
+
+// Helper for charts that don't need legends on mobile
+export const getResponsiveLayoutNoLegend = (baseLayout: any = {}) => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const layout = {
+    ...(isMobile ? MOBILE_LAYOUT : BASE_LAYOUT),
+    ...baseLayout,
+  };
+
+  if (isMobile) {
+    layout.showlegend = false;
+    layout.margin = { t: 10, r: 10, b: 40, l: 50 }; // Tighter margins when no legend
+  }
+
+  return layout;
 };
 
 export const CHART_CONFIG = {

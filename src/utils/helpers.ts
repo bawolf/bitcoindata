@@ -1,9 +1,7 @@
-// Format numbers to K format (e.g., 1000 -> 1k, 50000 -> 50k)
-export const formatToK = (value: number): string => {
-  if (value >= 1000) {
-    return Math.round(value / 1000) + 'k';
-  }
-  return Math.round(value).toString();
+// Format numbers with rounding and comma separators
+export const formatRoundedNumber = (value: number): string => {
+  const rounded = Math.round(value);
+  return new Intl.NumberFormat('en-US').format(rounded);
 };
 
 // Format date to readable format
@@ -16,8 +14,8 @@ export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 };
 

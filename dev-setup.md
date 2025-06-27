@@ -39,7 +39,7 @@ uv sync --extra web
 
 ```bash
 # Terminal 1: Start Flask API server
-uv run python web_deployment_example_react.py
+uv run python app.py
 
 # Terminal 2: Start Vite dev server with TypeScript
 npm run dev
@@ -54,7 +54,7 @@ The Vite dev server will run on `http://localhost:5173` and proxy API requests t
 npm run build
 
 # Run Flask server (serves built React files)
-uv run python web_deployment_example_react.py
+uv run python app.py
 ```
 
 ## Project Structure
@@ -94,8 +94,7 @@ bitcoin-data/
 ├── postcss.config.js           # PostCSS configuration
 ├── vite.config.js              # Vite configuration with path aliases
 ├── index.html                  # React app entry point
-├── web_deployment_example_react.py  # Flask app with React support
-└── web_deployment_example.py        # Original Flask app
+├── app.py  # Flask app with React support
 ```
 
 ## Available Scripts
@@ -109,7 +108,7 @@ bitcoin-data/
 
 ### Backend (uv)
 
-- `uv run python web_deployment_example_react.py` - Start Flask dev server
+- `uv run python app.py` - Start Flask dev server
 - `uv sync` - Install/update Python dependencies
 
 ## TypeScript Features
@@ -306,5 +305,5 @@ WORKDIR /app
 COPY --from=frontend /app/static/dist ./static/dist
 COPY . .
 RUN uv sync --extra web
-CMD .venv/bin/gunicorn web_deployment_example_react:app
+CMD .venv/bin/gunicorn app:app
 ```

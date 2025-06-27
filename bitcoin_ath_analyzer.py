@@ -7,10 +7,9 @@ from datetime import datetime, timedelta
 from scipy import stats
 import warnings
 import os
-import json
+import tempfile
 import io
 from google.cloud import storage
-import tempfile
 
 # Import the reliable API client
 from api_integrations import BitcoinPriceAPI
@@ -26,7 +25,6 @@ class BitcoinATHAnalyzer:
     def __init__(self, data_cache_file='bitcoin_data_cache.csv', gcs_bucket_name=None):
         # Set yfinance cache to a temporary directory to avoid issues in
         # read-only environments like Cloud Run.
-        # This is no longer strictly necessary but is good practice.
         yf.set_tz_cache_location(os.path.join(tempfile.gettempdir(), 'yfinance_cache'))
         
         self.data = None
@@ -62,6 +60,7 @@ class BitcoinATHAnalyzer:
     def download_bitcoin_data(self, start_date='2010-01-01', end_date=None, force_refresh=False):
         """
         Download Bitcoin historical data using yfinance with caching support.
+        Uses comprehensive dataset if available, otherwise falls back to yfinance.
         Cache can be local or on GCS.
         
         Args:
@@ -73,11 +72,45 @@ class BitcoinATHAnalyzer:
             end_date = datetime.now().strftime('%Y-%m-%d')
             
         # Check if cache exists (GCS or local)
-        cache_exists = self._blob_exists() if self.bucket else os.path.exists(self.cache_file_name)
+        gcs_cache_exists = self._blob_exists() if self.bucket else False
+        local_cache_exists = os.path.exists(self.cache_file_name)
             
-        if cache_exists and not force_refresh:
-            print("Loading cached data...")
-            cached_data = self._read_from_gcs() if self.bucket else pd.read_csv(self.cache_file_name, index_col=0, parse_dates=True)
+        if (gcs_cache_exists or local_cache_exists) and not force_refresh:
+            print("Loading cached comprehensive data...")
+            
+            # Prioritize GCS cache if it exists
+            if gcs_cache_exists:
+                cached_data = self._read_from_gcs()
+                cache_source = "GCS"
+            else:
+                cached_data = pd.read_csv(self.cache_file_name, index_col=0, parse_dates=True)
+                cache_source = "local"
+            
+            if cached_data is None:
+                print(f"Failed to load cached data from {cache_source}, trying alternative...")
+                
+                # If GCS failed, try local
+                if cache_source == "GCS" and local_cache_exists:
+                    print("Trying local cache...")
+                    cached_data = pd.read_csv(self.cache_file_name, index_col=0, parse_dates=True)
+                    cache_source = "local"
+                
+                # If still no data, fall back to downloading
+                if cached_data is None:
+                    print("No cached data available, downloading fresh data...")
+                    self.data = self._fetch_historical_data_yfinance(start_date, end_date)
+                    self._save_cache()
+                    return self.data
+            
+            print(f"Loaded {len(cached_data)} days from {cache_source} cache")
+            
+            # If we loaded from local cache and have GCS, upload to GCS
+            if cache_source == "local" and self.bucket:
+                print("Uploading local comprehensive data to GCS...")
+                self.data = cached_data
+                self._save_cache()  # This will upload to GCS
+            else:
+                self.data = cached_data
             
             # Check if we need to update with new data
             last_cached_date = cached_data.index[-1].strftime('%Y-%m-%d')
@@ -85,31 +118,29 @@ class BitcoinATHAnalyzer:
             
             if last_cached_date >= yesterday:
                 print(f"Cache is up to date (last date: {last_cached_date})")
-                self.data = cached_data
                 return self.data
             else:
                 print(f"Updating cache from {last_cached_date} to {end_date}...")
-                # For incremental updates in production, use the reliable CoinGecko API.
+                # For incremental updates, use the reliable CoinGecko API.
                 new_data = self._fetch_incremental_data_coingecko()
                 
                 if not new_data.empty:
                     # Combine cached and new data
-                    self.data = pd.concat([cached_data, new_data])
+                    self.data = pd.concat([self.data, new_data])
                     self.data = self.data[~self.data.index.duplicated(keep='last')]  # Remove duplicates
                     self._save_cache()
                     print(f"Updated cache with {len(new_data)} new days")
                 else:
                     print("No new data to add from CoinGecko")
-                    self.data = cached_data
                 return self.data
         else:
-            print(f"Cache not found. Performing full historical download with yfinance...")
+            print(f"No comprehensive cache found. Using yfinance for historical download...")
             self.data = self._fetch_historical_data_yfinance(start_date, end_date)
             self._save_cache()
             return self.data
-    
+
     def _fetch_historical_data_yfinance(self, start_date, end_date):
-        """Fetch full historical data from yfinance API (ideal for local, one-off seeding)."""
+        """Fetch full historical data from yfinance API."""
         try:
             print(f"Attempting to fetch data for BTC-USD from {start_date} to {end_date}")
             btc = yf.Ticker("BTC-USD")
@@ -148,7 +179,6 @@ class BitcoinATHAnalyzer:
         """Save current data to cache file (local or GCS)"""
         if self.data is not None:
             # Add a validation step to prevent writing future-dated or incomplete daily data to the cache.
-            # This makes the caching mechanism more robust.
             today = pd.to_datetime('today', utc=True).normalize()
             original_rows = len(self.data)
             
@@ -183,7 +213,7 @@ class BitcoinATHAnalyzer:
     
     def calculate_ath_distances(self):
         """
-        Calculate the all-time high for each day and the percentage distance from ATH.
+        Calculate the all-time high for each day and the percentage of previous ATH.
         """
         if self.data is None:
             raise ValueError("No data available. Please download data first.")
@@ -194,8 +224,8 @@ class BitcoinATHAnalyzer:
         # Calculate rolling all-time high (cumulative maximum of High prices)
         df['ATH'] = df['High'].cummax()
         
-        # Calculate distance from ATH as percentage
-        df['Distance_from_ATH_Pct'] = ((df['ATH'] - df['High']) / df['ATH']) * 100
+        # Calculate percent of ATH as percentage (inverse of distance from ATH)
+        df['Percent_of_ATH'] = (df['High'] / df['ATH']) * 100
         
         # Add some additional useful metrics
         df['Days_Since_ATH'] = 0
@@ -210,115 +240,115 @@ class BitcoinATHAnalyzer:
                 df.loc[date, 'Days_Since_ATH'] = days_since
         
         self.ath_data = df
-        print(f"Calculated ATH distances for {len(df)} days")
+        print(f"Calculated ATH percentages for {len(df)} days")
         return df
     
-    def get_current_percentile(self, current_distance=None):
+    def get_current_percentile(self, current_percent=None):
         """
-        Get the percentile rank of current distance from ATH.
+        Get the percentile rank of current percent of ATH.
         
         Args:
-            current_distance (float): Current distance from ATH in percentage.
-                                    If None, uses the most recent data point.
+            current_percent (float): Current percent of ATH.
+                                   If None, uses the most recent data point.
         """
         if self.ath_data is None:
             raise ValueError("ATH data not calculated. Run calculate_ath_distances() first.")
             
-        if current_distance is None:
-            current_distance = self.ath_data['Distance_from_ATH_Pct'].iloc[-1]
+        if current_percent is None:
+            current_percent = self.ath_data['Percent_of_ATH'].iloc[-1]
             
         # Calculate percentile rank
         percentile = stats.percentileofscore(
-            self.ath_data['Distance_from_ATH_Pct'], 
-            current_distance, 
+            self.ath_data['Percent_of_ATH'], 
+            current_percent, 
             kind='rank'
         )
         
-        return percentile, current_distance
+        return percentile, current_percent
     
     def analyze_distribution(self):
         """
-        Analyze the distribution of distances from ATH.
+        Analyze the distribution of percent of ATH.
         """
         if self.ath_data is None:
             raise ValueError("ATH data not calculated. Run calculate_ath_distances() first.")
             
-        distances = self.ath_data['Distance_from_ATH_Pct']
+        percentages = self.ath_data['Percent_of_ATH']
         
         analysis = {
-            'mean': distances.mean(),
-            'median': distances.median(),
-            'std': distances.std(),
-            'min': distances.min(),
-            'max': distances.max(),
+            'mean': percentages.mean(),
+            'median': percentages.median(),
+            'std': percentages.std(),
+            'min': percentages.min(),
+            'max': percentages.max(),
             'percentiles': {
-                '10th': distances.quantile(0.1),
-                '25th': distances.quantile(0.25),
-                '75th': distances.quantile(0.75),
-                '90th': distances.quantile(0.9),
-                '95th': distances.quantile(0.95),
-                '99th': distances.quantile(0.99)
+                '10th': percentages.quantile(0.1),
+                '25th': percentages.quantile(0.25),
+                '75th': percentages.quantile(0.75),
+                '90th': percentages.quantile(0.9),
+                '95th': percentages.quantile(0.95),
+                '99th': percentages.quantile(0.99)
             },
-            'days_at_ath': (distances == 0).sum(),
-            'total_days': len(distances)
+            'days_at_ath': (percentages == 100).sum(),
+            'total_days': len(percentages)
         }
         
         return analysis
     
     def plot_analysis(self, figsize=(15, 10)):
         """
-        Create comprehensive visualizations of the ATH distance analysis.
+        Create comprehensive visualizations of the percent of ATH analysis.
         """
         if self.ath_data is None:
             raise ValueError("ATH data not calculated. Run calculate_ath_distances() first.")
             
         fig, axes = plt.subplots(2, 2, figsize=figsize)
-        fig.suptitle('Bitcoin All-Time High Distance Analysis', fontsize=16, fontweight='bold')
+        fig.suptitle('Bitcoin Percent of All-Time High Analysis', fontsize=16, fontweight='bold')
         
-        # 1. Time series of distance from ATH
+        # 1. Time series of percent of ATH
         ax1 = axes[0, 0]
-        ax1.plot(self.ath_data.index, self.ath_data['Distance_from_ATH_Pct'], 
+        ax1.plot(self.ath_data.index, self.ath_data['Percent_of_ATH'], 
                 linewidth=0.8, alpha=0.8, color='#F7931A')
-        ax1.set_title('Distance from ATH Over Time')
-        ax1.set_ylabel('Distance from ATH (%)')
+        ax1.set_title('Percent of ATH Over Time')
+        ax1.set_ylabel('Percent of ATH (%)')
         ax1.grid(True, alpha=0.3)
         ax1.tick_params(axis='x', rotation=45)
         
         # 2. Distribution histogram
         ax2 = axes[0, 1]
-        distances = self.ath_data['Distance_from_ATH_Pct']
-        ax2.hist(distances, bins=50, alpha=0.7, color='#F7931A', edgecolor='black')
-        ax2.axvline(distances.mean(), color='red', linestyle='--', 
-                   label=f'Mean: {distances.mean():.1f}%')
-        ax2.axvline(distances.median(), color='green', linestyle='--', 
-                   label=f'Median: {distances.median():.1f}%')
-        ax2.set_title('Distribution of Distance from ATH')
-        ax2.set_xlabel('Distance from ATH (%)')
+        percentages = self.ath_data['Percent_of_ATH']
+        ax2.hist(percentages, bins=50, alpha=0.7, color='#F7931A', edgecolor='black')
+        ax2.axvline(percentages.mean(), color='red', linestyle='--', 
+                   label=f'Mean: {percentages.mean():.1f}%')
+        ax2.axvline(percentages.median(), color='green', linestyle='--', 
+                   label=f'Median: {percentages.median():.1f}%')
+        ax2.set_title('Distribution of Percent of ATH')
+        ax2.set_xlabel('Percent of ATH (%)')
         ax2.set_ylabel('Number of Days')
         ax2.legend()
         ax2.grid(True, alpha=0.3)
         
         # 3. Cumulative distribution
         ax3 = axes[1, 0]
-        sorted_distances = np.sort(distances)
-        cumulative_pct = np.arange(1, len(sorted_distances) + 1) / len(sorted_distances) * 100
-        ax3.plot(sorted_distances, cumulative_pct, color='#F7931A', linewidth=2)
+        sorted_percentages = np.sort(percentages)
+        cumulative_pct = np.arange(1, len(sorted_percentages) + 1) / len(sorted_percentages) * 100
+        ax3.plot(sorted_percentages, cumulative_pct, color='#F7931A', linewidth=2)
         ax3.set_title('Cumulative Distribution')
-        ax3.set_xlabel('Distance from ATH (%)')
+        ax3.set_xlabel('Percent of ATH (%)')
         ax3.set_ylabel('Cumulative Percentage')
         ax3.grid(True, alpha=0.3)
         
         # Add current position if available
-        current_distance = distances.iloc[-1]
-        current_percentile = stats.percentileofscore(distances, current_distance, kind='rank')
-        ax3.axvline(current_distance, color='red', linestyle='--', 
-                   label=f'Current: {current_distance:.1f}% ({current_percentile:.1f}th percentile)')
+        current_percent = percentages.iloc[-1]
+        current_percentile = stats.percentileofscore(percentages, current_percent, kind='rank')
+        ax3.axvline(current_percent, color='red', linestyle='--', 
+                   label=f'Current: {current_percent:.1f}% ({current_percentile:.1f}th percentile)')
         ax3.legend()
         
         # 4. Box plot by year
         ax4 = axes[1, 1]
         self.ath_data['Year'] = self.ath_data.index.year
-        years_data = [self.ath_data[self.ath_data['Year'] == year]['Distance_from_ATH_Pct'] 
+        years_data = [self.ath_data[self.ath_data['Year'] == year]['Percent_of_ATH'] 
                      for year in sorted(self.ath_data['Year'].unique())]
         bp = ax4.boxplot(years_data, labels=sorted(self.ath_data['Year'].unique()), 
                         patch_artist=True)
@@ -328,55 +358,55 @@ class BitcoinATHAnalyzer:
             patch.set_facecolor('#F7931A')
             patch.set_alpha(0.7)
             
-        ax4.set_title('Distance from ATH by Year')
+        ax4.set_title('Percent of ATH by Year')
         ax4.set_xlabel('Year')
-        ax4.set_ylabel('Distance from ATH (%)')
+        ax4.set_ylabel('Percent of ATH (%)')
         ax4.tick_params(axis='x', rotation=45)
         ax4.grid(True, alpha=0.3)
         
         plt.tight_layout()
         plt.show()
     
-    def get_context_report(self, current_distance=None):
+    def get_context_report(self, current_percent=None):
         """
         Generate a comprehensive report contextualizing current position.
         """
-        percentile, distance = self.get_current_percentile(current_distance)
+        percentile, percent = self.get_current_percentile(current_percent)
         analysis = self.analyze_distribution()
         
         report = f"""
-        Bitcoin All-Time High Distance Analysis Report
-        =============================================
+        Bitcoin Percent of All-Time High Analysis Report
+        =================================================
         
         Current Analysis:
-        - Current distance from ATH: {distance:.2f}%
+        - Current percent of ATH: {percent:.2f}%
         - This puts us in the {percentile:.1f}th percentile
-        - Only {percentile:.1f}% of days have been closer to ATH
-        - {100-percentile:.1f}% of days have been further from ATH
+        - {percentile:.1f}% of days have been lower than today
+        - {100-percentile:.1f}% of days have been higher than today
         
         Historical Context:
-        - Average distance from ATH: {analysis['mean']:.2f}%
-        - Median distance from ATH: {analysis['median']:.2f}%
+        - Average percent of ATH: {analysis['mean']:.2f}%
+        - Median percent of ATH: {analysis['median']:.2f}%
         - Days spent at ATH: {analysis['days_at_ath']} out of {analysis['total_days']} ({analysis['days_at_ath']/analysis['total_days']*100:.2f}%)
         
         Distribution Breakdown:
-        - 10% of days: ≤ {analysis['percentiles']['10th']:.2f}% from ATH
-        - 25% of days: ≤ {analysis['percentiles']['25th']:.2f}% from ATH  
-        - 75% of days: ≤ {analysis['percentiles']['75th']:.2f}% from ATH
-        - 90% of days: ≤ {analysis['percentiles']['90th']:.2f}% from ATH
-        - 95% of days: ≤ {analysis['percentiles']['95th']:.2f}% from ATH
+        - 10% of days: ≤ {analysis['percentiles']['10th']:.2f}% of ATH
+        - 25% of days: ≤ {analysis['percentiles']['25th']:.2f}% of ATH  
+        - 75% of days: ≤ {analysis['percentiles']['75th']:.2f}% of ATH
+        - 90% of days: ≤ {analysis['percentiles']['90th']:.2f}% of ATH
+        - 95% of days: ≤ {analysis['percentiles']['95th']:.2f}% of ATH
         
         Interpretation:
         """
         
-        if percentile < 10:
-            report += "- EXTREMELY RARE: Bitcoin is very close to ATH - this happens less than 10% of the time"
-        elif percentile < 25:
-            report += "- RARE: Bitcoin is unusually close to ATH - this happens less than 25% of the time"
-        elif percentile < 50:
+        if percentile > 90:
+            report += "- EXTREMELY HIGH: Bitcoin is very close to ATH - this happens less than 10% of the time"
+        elif percentile > 75:
+            report += "- HIGH: Bitcoin is unusually close to ATH - this happens less than 25% of the time"
+        elif percentile > 50:
             report += "- ABOVE AVERAGE: Bitcoin is closer to ATH than usual"
-        elif percentile < 75:
-            report += "- TYPICAL: Bitcoin distance from ATH is in the normal range"
+        elif percentile > 25:
+            report += "- TYPICAL: Bitcoin percent of ATH is in the normal range"
         else:
             report += "- FAR FROM ATH: Bitcoin is further from ATH than usual - potential opportunity?"
             
@@ -408,7 +438,7 @@ def main():
     
     # Show recent data
     print("\nRecent 10 days of data:")
-    recent_cols = ['High', 'ATH', 'Distance_from_ATH_Pct', 'Days_Since_ATH']
+    recent_cols = ['High', 'ATH', 'Percent_of_ATH', 'Days_Since_ATH']
     print(analyzer.ath_data[recent_cols].tail(10).round(2))
 
 

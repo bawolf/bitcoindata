@@ -4,7 +4,11 @@ import {
   LoadingErrorWrapper,
 } from '@/components/common';
 import useApiData from '@/hooks/useApiData';
-import { COLORS, BASE_LAYOUT, HOVER_TEMPLATES } from '@/utils/chartStyles';
+import {
+  COLORS,
+  getResponsiveLayoutNoLegend,
+  HOVER_TEMPLATES,
+} from '@/utils/chartStyles';
 import type { HistoricalData } from '@/types';
 
 export default function HistoricalChart() {
@@ -13,10 +17,7 @@ export default function HistoricalChart() {
   );
 
   return (
-    <ChartContainer
-      title="HODL Difficulty Over Time (All Data)"
-      description="Higher values = easier to hold (closer to ATH). Lower values = maximum emotional pain."
-    >
+    <ChartContainer title="Percent of Previous All Time High Over Time (All Data)">
       <LoadingErrorWrapper
         loading={loading}
         error={error}
@@ -27,26 +28,25 @@ export default function HistoricalChart() {
             data={[
               {
                 x: data.dates,
-                y: data.distances.map((d) => 100 - d), // Invert for ease score
+                y: data.percentages,
                 type: 'scatter',
                 mode: 'lines',
-                name: 'HODL Ease Score',
+                name: 'Percent of ATH',
                 line: { color: COLORS.bitcoinOrange, width: 2 },
                 fill: 'tonexty',
                 fillcolor: COLORS.bitcoinOrangeLight,
                 hovertemplate: HOVER_TEMPLATES.percentage,
               },
             ]}
-            layout={{
-              ...BASE_LAYOUT,
+            layout={getResponsiveLayoutNoLegend({
               xaxis: { title: 'Date', showgrid: false },
               yaxis: {
-                title: 'HODL Ease Score (%)',
+                title: 'Percent of ATH (%)',
                 range: [0, 105],
                 showgrid: true,
                 gridcolor: COLORS.gridColor,
               },
-            }}
+            })}
           />
         )}
       </LoadingErrorWrapper>

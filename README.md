@@ -155,7 +155,7 @@ For development, you'll run both the React/TypeScript frontend and Python backen
 
 ```bash
 # Terminal 1: Start Flask API server
-uv run python web_deployment_example_react.py
+uv run python app.py
 
 # Terminal 2: Start Vite dev server (React/TypeScript)
 npm run dev
@@ -177,16 +177,7 @@ For production-like testing locally:
 npm run build
 
 # Start Flask server (serves built React app)
-uv run python web_deployment_example_react.py
-```
-
-#### Legacy Mode (Original HTML)
-
-The original single-file HTML version is still available:
-
-```bash
-# Start original Flask server
-uv run python web_deployment_example.py
+uv run python app.py
 ```
 
 ### Command Line Analysis
@@ -310,7 +301,7 @@ The web application provides several REST API endpoints:
 bitcoin-data/
 ├── bitcoin_ath_analyzer.py      # Core analysis engine
 ├── api_integrations.py          # Real-time data & caching
-├── web_deployment_example.py    # Flask web application
+├── app.py    # Flask web application
 ├── templates/dashboard.html     # Web dashboard UI
 ├── bitcoin_data_cache.csv       # Cached historical data
 ├── pyproject.toml              # UV configuration
@@ -370,7 +361,7 @@ uv run bitcoin-ath-web
 uv sync --extra web
 
 # Use Gunicorn for production
-uv run gunicorn -w 4 -b 0.0.0.0:8000 web_deployment_example:app
+uv run gunicorn -w 4 -b 0.0.0.0:8000 app:app
 ```
 
 ### Docker (Optional)
@@ -381,7 +372,7 @@ WORKDIR /app
 COPY . .
 RUN pip install uv && uv sync --extra web
 EXPOSE 5000
-CMD ["uv", "run", "python", "web_deployment_example.py"]
+CMD ["uv", "run", "python", "app.py"]
 ```
 
 ## ☁️ GCP Deployment Guide
@@ -650,3 +641,201 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [Bitcoin Price Data](https://finance.yahoo.com/quote/BTC-USD/)
 
 Built with ❤️ for the Bitcoin community
+
+## 📊 Comprehensive Historical Data Sources
+
+### ⚡ Quick Start with Full History
+
+To get Bitcoin data from **2010** instead of just 2014:
+
+```bash
+# One-command rebuild of comprehensive dataset
+python rebuild_comprehensive_data.py
+
+# Then use normally
+analyzer = BitcoinATHAnalyzer()
+analyzer.download_bitcoin_data()  # Uses comprehensive cache
+analyzer.calculate_ath_distances()
+```
+
+### 🚨 If Data is Ever Lost - Definitive Rebuild Process
+
+**Single Command Recovery:**
+
+```bash
+python rebuild_comprehensive_data.py
+```
+
+This script automatically:
+
+1. 📥 Downloads historical data from GitHub repo (2010-2022)
+2. 📈 Downloads current data from yfinance (2022-present)
+3. 🔗 Merges with historical data taking precedence
+4. 💾 Saves as `bitcoin_data_cache.csv` (ready to use)
+
+**Manual Steps (if automated script fails):**
+
+```bash
+# 1. Clone historical data repository
+git clone https://github.com/cilphex/full-bitcoin-price-history.git
+
+# 2. Process the data
+python -c "
+import json, pandas as pd
+with open('full-bitcoin-price-history/price-data/aggregate-data.json') as f:
+    data = json.load(f)['candles']
+df = pd.DataFrame([[pd.to_datetime(c[0], unit='s', utc=True)] + c[1:6]
+                   for c in data if len(c) >= 5],
+                  columns=['Date','Open','High','Low','Close','Volume'])
+df.set_index('Date', inplace=True)
+df.to_csv('historical_2010_2022.csv')
+print(f'Historical data: {len(df)} days from {df.index.min().date()} to {df.index.max().date()}')
+"
+
+# 3. Use in your analyzer
+analyzer = BitcoinATHAnalyzer()
+# Manually load: analyzer.data = pd.read_csv('historical_2010_2022.csv', index_col=0, parse_dates=True)
+```
+
+### 📈 What You Gain with Comprehensive Data
+
+**Original yfinance limitation**: 2014-09-17 onwards (3,934 days)  
+**Comprehensive dataset**: 2010-07-19 onwards (5,448+ days)
+
+**🎯 Additional Coverage:**
+
+- **+4.2 years** of crucial early Bitcoin history
+- **+1,500 days** of price data
+- **+71 ATH events** before 2014 (previously missed!)
+
+**🏆 Early Milestones Now Captured:**
+
+- 2010-09-15: First $0.10
+- 2011-02-10: First $1.00
+- 2011-06-03: First $10.00
+- 2013-04-02: First $100.00
+- 2013-11-28: First $1,000.00
+
+### 🔧 Data Sources Used
+
+1. **GitHub Historical Repository** (Primary: 2010-2022)
+
+   - Mt. Gox data: 2010-2013
+   - Bitstamp data: 2013-2015
+   - Coinbase data: 2015-2022
+   - Complete OHLCV with daily High prices
+
+2. **yfinance** (Current: 2022-present)
+   - Real-time updates
+   - Reliable recent data
+
+### 🧹 Maintenance
+
+The comprehensive dataset auto-updates when you run:
+
+```python
+analyzer.download_bitcoin_data()
+```
+
+To force a complete rebuild (if data corruption or need latest historical):
+
+```bash
+python rebuild_comprehensive_data.py
+```
+
+### ⚠️ Troubleshooting
+
+If rebuild fails:
+
+1. Check internet connection
+2. Ensure `git` is installed (`git --version`)
+3. Try manual process above
+4. Check GitHub repo is still available: https://github.com/cilphex/full-bitcoin-price-history
+
+### 📊 Current Limitations
+
+Your current dataset only goes back to **2014-09-17**, which misses Bitcoin's most important early years (2009-2013). This is a significant limitation because:
+
+- **Bitcoin launched in 2009** - you're missing the first 5+ years
+- **First major price movements** happened in 2010-2013
+- **Mt. Gox era** (2010-2014) contained crucial price discovery
+- **Early adopter phases** and initial volatility patterns are missing
+
+### Better Data Sources Available
+
+#### 🥇 **CoinMetrics (Recommended)**
+
+- **Coverage**: Back to 2009 (Bitcoin's genesis)
+- **Quality**: Institutional-grade, professionally cleaned data
+- **Access**: Free Community API available
+- **API**: `https://community-api.coinmetrics.io/v4/timeseries/market-data`
+- **Advantage**: Most comprehensive, includes network metrics
+
+#### 🥈 **Bitcoincharts.com**
+
+- **Coverage**: 2010 onwards (includes Mt. Gox data)
+- **Quality**: Raw exchange data, historically significant
+- **Access**: Free CSV downloads
+- **API**: `http://api.bitcoincharts.com/v1/csv/`
+- **Advantage**: Includes original Mt. Gox trading data from 2010-2013
+
+#### 🥉 **CryptoDataDownload**
+
+- **Coverage**: Multiple exchanges from 2011 onwards
+- **Quality**: Exchange-specific OHLCV data
+- **Access**: Free with registration
+- **Formats**: CSV, minute/hourly/daily granularity
+- **Advantage**: Multiple exchange sources, very detailed
+
+#### **Other Sources**
+
+- **Quandl/Nasdaq**: Professional financial data (2010+)
+- **Alpha Vantage**: Free tier available (2013+)
+- **Yahoo Finance**: Limited historical depth
+- **CoinGecko**: Good for recent data, limited historical
+
+### 🚀 Enhanced Data Fetching
+
+I've added new methods to get much older Bitcoin data:
+
+```python
+from bitcoin_ath_analyzer import BitcoinATHAnalyzer
+
+# Initialize analyzer
+analyzer = BitcoinATHAnalyzer()
+
+# Get comprehensive data back to 2009
+analyzer.download_comprehensive_bitcoin_data(start_date='2009-01-01')
+
+# This will try multiple sources:
+# 1. CoinMetrics (2009+)
+# 2. Bitcoincharts (2010+)
+# 3. Fallback to yfinance (2014+)
+```
+
+### 📈 What You'll Gain
+
+With comprehensive historical data, you'll capture:
+
+- **2009-2010**: Bitcoin's first recorded trades ($0.0009 to $0.39)
+- **2011**: First major rally ($0.30 to $29.60)
+- **2012**: First halving event impact
+- **2013**: First $1000+ milestone and Mt. Gox peak
+- **2014**: Mt. Gox collapse and crash to $200s
+
+This adds **~4-5 years** and **~1,500+ additional days** of crucial historical data.
+
+### 🔧 Usage Examples
+
+```python
+# Test the new comprehensive data fetching
+python test_comprehensive_data.py
+
+# Use in your analysis
+analyzer = BitcoinATHAnalyzer()
+data = analyzer.download_comprehensive_bitcoin_data(start_date='2009-01-01')
+analyzer.calculate_ath_distances()
+analyzer.analyze_distribution()
+```
+
+The comprehensive historical data will give you a much more complete picture of Bitcoin's price behavior and ATH patterns throughout its entire history, not just the recent years.

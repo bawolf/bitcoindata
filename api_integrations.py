@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class BitcoinPriceAPI:
     """
-    Production-ready Bitcoin price API client with multiple provider support
+    Production-ready Bitcoin price API client for current price data and daily updates
     """
     
     def __init__(self):
@@ -124,7 +124,7 @@ class BitcoinPriceAPI:
     
     def get_daily_ohlcv_coingecko(self, days: int = 1) -> pd.DataFrame:
         """
-        Get daily OHLCV data from CoinGecko
+        Get daily OHLCV data from CoinGecko (for recent daily updates)
         
         Args:
             days: Number of days to fetch (1-365)
@@ -230,16 +230,16 @@ class DailyUpdateManager:
             current_data = self.price_api.get_current_price_with_fallback()
             
             # 4. Calculate current percentile and dollar difference
-            current_distance = None
+            current_percent = None
             dollar_difference = 0
             latest_ath = 0
             
             if len(self.analyzer.ath_data) > 0:
                 latest_ath = self.analyzer.ath_data['ATH'].iloc[-1]
-                current_distance = ((latest_ath - current_data['price']) / latest_ath) * 100
+                current_percent = (current_data['price'] / latest_ath) * 100
                 dollar_difference = latest_ath - current_data['price']
             
-            percentile, distance = self.analyzer.get_current_percentile(current_distance)
+            percentile, percent = self.analyzer.get_current_percentile(current_percent)
             
             # 5. Generate analysis
             analysis = self.analyzer.analyze_distribution()
@@ -250,18 +250,18 @@ class DailyUpdateManager:
                 'current_price': float(current_data['price']),
                 'current_ath': float(latest_ath),
                 'dollar_difference_from_ath': float(dollar_difference),
-                'current_distance_from_ath': float(distance),
+                'current_percent_of_ath': float(percent),
                 'percentile_rank': float(percentile),
                 'total_days_analyzed': int(len(self.analyzer.ath_data)),
                 'analysis_summary': {
-                    'mean_distance': float(analysis['mean']),
-                    'median_distance': float(analysis['median']),
+                    'mean_percent': float(analysis['mean']),
+                    'median_percent': float(analysis['median']),
                     'days_at_ath': int(analysis['days_at_ath'])
                 },
                 'api_source': current_data['source']
             }
             
-            logger.info(f"Daily update completed successfully. Current distance: {distance:.2f}% (percentile: {percentile:.1f})")
+            logger.info(f"Daily update completed successfully. Current percent: {percent:.2f}% of ATH (percentile: {percentile:.1f})")
             return result
             
         except Exception as e:
@@ -289,7 +289,7 @@ def create_daily_update_job():
     
     # Log or store result for monitoring
     if result['success']:
-        print(f"✅ Daily update successful: {result['current_distance_from_ath']:.2f}% from ATH")
+        print(f"✅ Daily update successful: {result['current_percent_of_ath']:.2f}% of ATH")
     else:
         print(f"❌ Daily update failed: {result['error']}")
     
