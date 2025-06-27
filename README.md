@@ -246,7 +246,3 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Data Sources**: yfinance, CoinGecko APIs, historical Bitcoin exchanges
 - **Technologies**: React, TypeScript, Flask, Plotly.js, Tailwind CSS, UV Package Manager
 - **Inspiration**: The emotional rollercoaster of Bitcoin hodling
-
----
-
-Built with ❤️ for understanding Bitcoin's emotional journey through statistical analysis.

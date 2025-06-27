@@ -38,15 +38,18 @@ export default function HistoricalChart() {
                 hovertemplate: HOVER_TEMPLATES.percentage,
               },
             ]}
-            layout={getResponsiveLayoutNoLegend({
-              xaxis: { title: 'Date', showgrid: false },
-              yaxis: {
-                title: 'Percent of ATH (%)',
-                range: [0, 105],
-                showgrid: true,
-                gridcolor: COLORS.gridColor,
-              },
-            })}
+            layout={{
+              ...getResponsiveLayoutNoLegend({
+                xaxis: { title: 'Date', showgrid: false },
+                yaxis: {
+                  title: 'Percent of ATH (%)',
+                  range: [0, 105],
+                  showgrid: true,
+                  gridcolor: COLORS.gridColor,
+                },
+              }),
+              showlegend: false,
+            }}
           />
         )}
       </LoadingErrorWrapper>

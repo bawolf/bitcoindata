@@ -9,18 +9,18 @@ export default function InsightBox({
 }: InsightBoxProps) {
   return (
     <div
-      className={cn('rounded-xl p-6 border-l-4 border-green-500', className)}
-      style={{
-        background: 'linear-gradient(120deg, #a8e6cf 0%, #dcedc1 100%)',
-      }}
+      className={cn(
+        'bg-blue-50 border border-blue-200 p-4 rounded-lg',
+        className
+      )}
     >
       {title && (
-        <h4 className="text-xl font-semibold mb-3 text-text-dark">
+        <h4 className="text-lg font-semibold mb-3 text-gray-800">
           {icon && <span className="mr-2">{icon}</span>}
           {title}
         </h4>
       )}
-      <div className="mb-0 text-text-dark">{children}</div>
+      <div className="text-gray-700 leading-relaxed">{children}</div>
     </div>
   );
 }

@@ -34,8 +34,8 @@ export default function HardestDaysTable({
                   <th className="px-3 py-3 text-right text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">
                     Loss
                   </th>
-                  <th className="px-3 py-3 text-right text-xs md:text-sm font-semibold text-gray-900 bg-blue-50 whitespace-nowrap">
-                    <div className="font-bold text-blue-700">PoPATH</div>
+                  <th className="px-3 py-3 text-right text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">
+                    PoPATH
                   </th>
                 </tr>
               </thead>
@@ -76,15 +76,8 @@ export default function HardestDaysTable({
                     <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-red-600 whitespace-nowrap">
                       -{formatCurrency(day.dollar_loss)}
                     </td>
-                    <td className="px-3 py-3 text-right bg-blue-50 whitespace-nowrap">
-                      <span
-                        className={cn(
-                          'font-bold text-sm md:text-base',
-                          getSentimentColor(day.percent_of_ath)
-                        )}
-                      >
-                        {day.percent_of_ath.toFixed(1)}%
-                      </span>
+                    <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-red-600 whitespace-nowrap">
+                      {day.percent_of_ath.toFixed(1)}%
                     </td>
                   </tr>
                 ))}

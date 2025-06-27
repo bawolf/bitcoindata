@@ -27,12 +27,22 @@ export default function DistributionChart({
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const responsiveLayout = getResponsiveLayout(baseLayout);
 
+    // Position legend below the chart for both mobile and desktop
     if (isMobile) {
-      // Extra space for legend on mobile
+      // Mobile: Extra space for legend
       responsiveLayout.margin = { t: 20, r: 10, b: 120, l: 50 };
       responsiveLayout.legend = {
         x: 0.5,
-        y: -0.25, // Further below the chart
+        y: -0.25, // Below the chart
+        xanchor: 'center',
+        orientation: 'h',
+      };
+    } else {
+      // Desktop: Position legend below the chart
+      responsiveLayout.margin = { t: 20, r: 20, b: 100, l: 60 }; // Increased bottom margin
+      responsiveLayout.legend = {
+        x: 0.5,
+        y: -0.25, // Below the chart
         xanchor: 'center',
         orientation: 'h',
       };
@@ -40,6 +50,8 @@ export default function DistributionChart({
 
     return responsiveLayout;
   };
+
+  const medianPercent = data?.statistics.median_percent.toFixed(1);
 
   return (
     <LoadingErrorWrapper
@@ -50,11 +62,11 @@ export default function DistributionChart({
       {data && (
         <p className="text-lg mb-5 text-text-dark leading-relaxed">
           While the chart above shows the story of the emotional moments over
-          time, the histogram captures the general vibe. On the median day,
-          Bitcoin is at {data.statistics.median_percent.toFixed(1)}% of its
-          all-time high. This means that on half the days they hold, holders are
-          staring at a price that's only 50% of what they could have sold for at
-          one point in time.
+          time, the histogram captures the overall vibe. On the median day,
+          Bitcoin is at {medianPercent}% of its previous all-time high. This
+          means for half of all days, holders have been staring at a price
+          that's only {medianPercent}% of what they could have sold for at some
+          point earlier.
         </p>
       )}
       <ChartContainer title="Distribution of Percent of All-Time High">
