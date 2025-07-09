@@ -10,10 +10,11 @@ The app tracks Bitcoin's distance from all-time high and shows:
 
 - Historical charts of Bitcoin's price relative to ATH since 2010
 - Statistical analysis of how often Bitcoin trades at different levels
-- A table of the "hardest days" to hold Bitcoin (furthest from ATH)
+- A table of the "hardest days" to hold Bitcoin (furthest from previous ATH)
+- A table of the "easiest days" to hold Bitcoin (furthest above previous ATH)
 - Current analysis of where Bitcoin stands today
 
-The main metric is "Percent of Previous ATH" (PoPATH) - what percentage of the all-time high Bitcoin was trading at on any given day.
+The main metric is "Percent of Previous ATH" (PoPATH) - what percentage of the previous all-time high Bitcoin was trading at on any given day. This metric can exceed 100% when Bitcoin breaks its previous ATH, allowing us to measure the emotional intensity of record-breaking days.
 
 ## Technology
 
@@ -68,20 +69,27 @@ Open [http://localhost:5000](http://localhost:5000) to view the dashboard.
 
 ## The Core Metric
 
-**PoPATH (Percent of Previous ATH)** measures Bitcoin's price as a percentage of its all-time high on that date:
+**PoPATH (Percent of Previous ATH)** measures Bitcoin's price as a percentage of the all-time high from the day before:
 
 ```
-PoPATH = (Day's High Price / ATH on That Date) × 100
+PoPATH = (Day's High Price / ATH Before That Day) × 100
 ```
 
-Higher percentages mean Bitcoin is closer to its ATH. Lower percentages indicate it's further away, which historically correlates with more difficult periods for holders.
+This calculation allows the metric to exceed 100% when Bitcoin breaks its previous ATH, better capturing the emotional experience of holding:
+
+- **>100%**: Euphoric days when Bitcoin breaks into new territory
+- **90-100%**: Easy days, very close to previous highs
+- **50-90%**: Moderate difficulty, noticeable distance from ATH
+- **<50%**: Hard days, far from previous highs
+
+Higher percentages correlate with easier emotional periods for holders, while lower percentages indicate more psychologically challenging times.
 
 ## API Endpoints
 
 - `GET /api/current-analysis` - Live Bitcoin price and ATH analysis
 - `GET /api/historical-data?days=365` - Historical ATH distance data
 - `GET /api/distribution-histogram` - Statistical distribution data
-- `GET /api/hardest-days` - The most difficult days to hold Bitcoin
+- `GET /api/hardest-days` - The most difficult and easiest days to hold Bitcoin
 
 ### Example Response
 
@@ -110,7 +118,8 @@ bitcoin-data/
 │   │   ├── HistoricalChart.tsx  # Time series visualization
 │   │   ├── DistributionChart.tsx # Statistical distribution
 │   │   ├── CumulativeChart.tsx  # Percentile curve
-│   │   └── HardestDaysTable.tsx # Historical difficulty ranking
+│   │   ├── HardestDaysTable.tsx # Historical difficulty ranking
+│   │   └── EasiestDaysTable.tsx # Historical euphoria ranking
 │   ├── hooks/
 │   │   └── useApiData.ts        # Generic typed API hook
 │   ├── types/                   # TypeScript definitions
