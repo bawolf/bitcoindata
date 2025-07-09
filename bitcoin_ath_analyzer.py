@@ -214,6 +214,9 @@ class BitcoinATHAnalyzer:
     def calculate_ath_distances(self):
         """
         Calculate the all-time high for each day and the percentage of previous ATH.
+        
+        Uses the ATH up to and including the day before, allowing days that break
+        the ATH to show >100% and better capture the emotional experience.
         """
         if self.data is None:
             raise ValueError("No data available. Please download data first.")
@@ -221,8 +224,13 @@ class BitcoinATHAnalyzer:
         # Create a copy for processing
         df = self.data.copy()
         
-        # Calculate rolling all-time high (cumulative maximum of High prices)
-        df['ATH'] = df['High'].cummax()
+        # Calculate rolling all-time high up to and including the day before
+        # This allows days that break ATH to show >100%
+        df['ATH'] = df['High'].shift(1).cummax()
+        
+        # For the first day, use the first day's high as the ATH
+        # (since there's no previous day to compare against)
+        df['ATH'].iloc[0] = df['High'].iloc[0]
         
         # Calculate percent of ATH as percentage (inverse of distance from ATH)
         df['Percent_of_ATH'] = (df['High'] / df['ATH']) * 100
@@ -290,6 +298,8 @@ class BitcoinATHAnalyzer:
                 '99th': percentages.quantile(0.99)
             },
             'days_at_ath': (percentages == 100).sum(),
+            'days_above_ath': (percentages > 100).sum(),
+            'days_at_or_above_ath': (percentages >= 100).sum(),
             'total_days': len(percentages)
         }
         
@@ -387,7 +397,9 @@ class BitcoinATHAnalyzer:
         Historical Context:
         - Average percent of ATH: {analysis['mean']:.2f}%
         - Median percent of ATH: {analysis['median']:.2f}%
-        - Days spent at ATH: {analysis['days_at_ath']} out of {analysis['total_days']} ({analysis['days_at_ath']/analysis['total_days']*100:.2f}%)
+        - Days spent at ATH (=100%): {analysis['days_at_ath']} out of {analysis['total_days']} ({analysis['days_at_ath']/analysis['total_days']*100:.2f}%)
+        - Days above ATH (>100%): {analysis['days_above_ath']} out of {analysis['total_days']} ({analysis['days_above_ath']/analysis['total_days']*100:.2f}%)
+        - Days at or above ATH (≥100%): {analysis['days_at_or_above_ath']} out of {analysis['total_days']} ({analysis['days_at_or_above_ath']/analysis['total_days']*100:.2f}%)
         
         Distribution Breakdown:
         - 10% of days: ≤ {analysis['percentiles']['10th']:.2f}% of ATH
@@ -399,7 +411,9 @@ class BitcoinATHAnalyzer:
         Interpretation:
         """
         
-        if percentile > 90:
+        if percent > 100:
+            report += f"- NEW ATH TERRITORY: Bitcoin broke the previous ATH by {percent-100:.1f}% - this is rare!"
+        elif percentile > 90:
             report += "- EXTREMELY HIGH: Bitcoin is very close to ATH - this happens less than 10% of the time"
         elif percentile > 75:
             report += "- HIGH: Bitcoin is unusually close to ATH - this happens less than 25% of the time"

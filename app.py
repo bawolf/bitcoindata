@@ -227,7 +227,7 @@ def register_routes(app):
             return jsonify({'success': False, 'error': 'No analysis data available.'}), 500
         
         try:
-            # Get top 5 hardest days (lowest percentages of ATH)
+            # Get top 10 hardest days (lowest percentages of ATH)
             hardest_days = analyzer.ath_data.nsmallest(10, 'Percent_of_ATH')
             
             hardest_data = []
@@ -240,19 +240,33 @@ def register_routes(app):
                     'dollar_loss': float(row['ATH'] - row['High'])
                 })
             
-            # Count easy days (days at ATH)
-            easy_days = analyzer.ath_data[analyzer.ath_data['Percent_of_ATH'] == 100.0]
-            easy_days_count = len(easy_days)
-            total_days = len(analyzer.ath_data)
-            easy_days_pct = (easy_days_count / total_days) * 100
+            # Get top 10 easiest days (highest percentages of ATH)
+            easiest_days = analyzer.ath_data.nlargest(10, 'Percent_of_ATH')
             
-            # Get recent easy days
-            recent_easy_days = easy_days.tail(5)
-            easy_days_data = []
-            for date, row in recent_easy_days.iterrows():
-                easy_days_data.append({
+            easiest_data = []
+            for date, row in easiest_days.iterrows():
+                easiest_data.append({
                     'date': date.strftime('%Y-%m-%d'),
-                    'price': float(row['High'])
+                    'percent_of_ath': float(row['Percent_of_ATH']),
+                    'price': float(row['High']),
+                    'ath_at_time': float(row['ATH']),
+                    'dollar_gain': float(row['High'] - row['ATH']) if row['Percent_of_ATH'] > 100 else 0.0
+                })
+            
+            # Count days above ATH (the interesting metric)
+            above_ath_days = analyzer.ath_data[analyzer.ath_data['Percent_of_ATH'] > 100.0]
+            above_ath_count = len(above_ath_days)
+            total_days = len(analyzer.ath_data)
+            above_ath_pct = (above_ath_count / total_days) * 100
+            
+            # Get recent above-ATH days
+            recent_above_ath_days = above_ath_days.tail(5)
+            above_ath_data = []
+            for date, row in recent_above_ath_days.iterrows():
+                above_ath_data.append({
+                    'date': date.strftime('%Y-%m-%d'),
+                    'price': float(row['High']),
+                    'percent_of_ath': float(row['Percent_of_ATH'])
                 })
             
             # Get first date in the dataset
@@ -262,10 +276,11 @@ def register_routes(app):
                 'success': True,
                 'data': {
                     'hardest_days': hardest_data,
-                    'easy_days_count': easy_days_count,
-                    'easy_days_percentage': float(easy_days_pct),
+                    'easiest_days': easiest_data,
+                    'above_ath_count': above_ath_count,
+                    'above_ath_percentage': float(above_ath_pct),
                     'total_days': total_days,
-                    'recent_easy_days': easy_days_data,
+                    'recent_above_ath_days': above_ath_data,
                     'first_date': first_date
                 }
             })

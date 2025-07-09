@@ -16,6 +16,21 @@ export default function HistoricalChart() {
     '/api/historical-data?days=-1'
   );
 
+  // Calculate dynamic y-axis range
+  const getYAxisRange = () => {
+    if (!data || data.percentages.length === 0) return [0, 105];
+
+    const maxValue = Math.max(...data.percentages);
+    const minValue = Math.min(...data.percentages);
+
+    // Add 5% padding above and below
+    const padding = (maxValue - minValue) * 0.05;
+    const yMin = Math.max(0, minValue - padding);
+    const yMax = maxValue + padding;
+
+    return [yMin, yMax];
+  };
+
   return (
     <ChartContainer title="Percent of Previous All Time High Over Time (All Data)">
       <LoadingErrorWrapper
@@ -43,7 +58,7 @@ export default function HistoricalChart() {
                 xaxis: { title: 'Date', showgrid: false },
                 yaxis: {
                   title: 'Percent of ATH (%)',
-                  range: [0, 105],
+                  range: getYAxisRange(),
                   showgrid: true,
                   gridcolor: COLORS.gridColor,
                 },

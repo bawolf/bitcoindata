@@ -3,11 +3,12 @@ import { getSentimentWord } from '@/utils';
 import type { CurrentAnalysis, HardestDaysData } from '@/types';
 
 // Common components
-import { InsightBox, Section } from '@/components/common';
+import { Section } from '@/components/common';
 
 // Feature components
 import CurrentStats from '@/components/CurrentStats';
 import HardestDaysTable from '@/components/HardestDaysTable';
+import EasiestDaysTable from '@/components/EasiestDaysTable';
 import HistoricalChart from '@/components/HistoricalChart';
 import DistributionChart from '@/components/DistributionChart';
 import CumulativeChart from '@/components/CumulativeChart';
@@ -76,7 +77,7 @@ function App() {
                   Day's High
                 </div>
                 <div className="px-4 py-2 font-mono text-base">
-                  ATH on or before that date
+                  ATH before that day
                 </div>
               </div>
               <span className="font-semibold text-gray-800">× 100</span>
@@ -156,20 +157,20 @@ function App() {
           loading={hardestLoading}
           error={hardestError}
         />
-        {hardestDays && (
-          <InsightBox title="🎉 The Easy Days">
-            <p>
-              On the lighter side, there were {hardestDays.easy_days_count} days
-              ({hardestDays.easy_days_percentage.toFixed(1)}%) since{' '}
-              {new Date(hardestDays.first_date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}{' '}
-              that Bitcoin hit a new all-time high.
-            </p>
-          </InsightBox>
-        )}
+      </Section>
+
+      <Section title="The Easiest Days to HODL">
+        <p className="text-lg mb-5 text-text-dark leading-relaxed">
+          On the flip side, here are the ten days when Bitcoin closed highest
+          above its previous all-time high. These represent the most euphoric
+          days to hold Bitcoin - when holders could sell for more than they ever
+          imagined possible before!
+        </p>
+        <EasiestDaysTable
+          easiestDays={hardestDays?.easiest_days || null}
+          loading={hardestLoading}
+          error={hardestError}
+        />
       </Section>
 
       <Section title="The Emotional Journey Over Time">

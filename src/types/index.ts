@@ -14,14 +14,24 @@ export interface HardestDay {
   dollar_loss: number;
 }
 
+export interface EasiestDay {
+  date: string;
+  percent_of_ath: number;
+  price: number;
+  ath_at_time: number;
+  dollar_gain: number;
+}
+
 export interface HardestDaysData {
   hardest_days: HardestDay[];
-  easy_days_count: number;
-  easy_days_percentage: number;
+  easiest_days: EasiestDay[];
+  above_ath_count: number;
+  above_ath_percentage: number;
   total_days: number;
-  recent_easy_days: Array<{
+  recent_above_ath_days: Array<{
     date: string;
     price: number;
+    percent_of_ath: number;
   }>;
   first_date: string;
 }
@@ -120,6 +130,12 @@ export interface CurrentStatsProps {
 
 export interface HardestDaysProps {
   hardestDays: HardestDaysData | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface EasiestDaysProps {
+  easiestDays: EasiestDay[] | null;
   loading: boolean;
   error: string | null;
 }

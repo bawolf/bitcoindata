@@ -1,19 +1,19 @@
 import { LoadingErrorWrapper } from '@/components/common';
 import { cn, formatCurrency } from '@/utils';
-import type { HardestDaysProps } from '@/types';
+import type { EasiestDaysProps } from '@/types';
 
-export default function HardestDaysTable({
-  hardestDays,
+export default function EasiestDaysTable({
+  easiestDays,
   loading,
   error,
-}: HardestDaysProps) {
+}: EasiestDaysProps) {
   return (
     <LoadingErrorWrapper
       loading={loading}
       error={error}
-      loadingMessage="Loading hardest days..."
+      loadingMessage="Loading easiest days..."
     >
-      {hardestDays && (
+      {easiestDays && (
         <div className="my-8">
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <table className="w-auto min-w-full">
@@ -29,10 +29,10 @@ export default function HardestDaysTable({
                     Price
                   </th>
                   <th className="px-3 py-3 text-right text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">
-                    ATH
+                    Previous ATH
                   </th>
                   <th className="px-3 py-3 text-right text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">
-                    Loss
+                    Gain
                   </th>
                   <th className="px-3 py-3 text-right text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">
                     PoPATH
@@ -40,19 +40,19 @@ export default function HardestDaysTable({
                 </tr>
               </thead>
               <tbody>
-                {hardestDays.hardest_days.map((day, index) => (
+                {easiestDays.map((day, index) => (
                   <tr
                     key={day.date}
                     className={cn(
                       'border-b border-gray-100 hover:bg-gray-50 transition-colors',
-                      index === 0 && 'bg-red-50' // Highlight worst day
+                      index === 0 && 'bg-green-50' // Highlight best day
                     )}
                   >
                     <td className="px-3 py-3 whitespace-nowrap">
                       <div
                         className={cn(
                           'inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full text-xs font-bold text-white',
-                          index === 0 ? 'bg-red-600' : 'bg-gray-400'
+                          index === 0 ? 'bg-green-600' : 'bg-gray-400'
                         )}
                       >
                         {index + 1}
@@ -70,13 +70,15 @@ export default function HardestDaysTable({
                     <td className="px-3 py-3 text-right font-mono text-xs md:text-sm whitespace-nowrap">
                       {formatCurrency(day.price)}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-green-600 whitespace-nowrap">
+                    <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-gray-600 whitespace-nowrap">
                       {formatCurrency(day.ath_at_time)}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-red-600 whitespace-nowrap">
-                      -{formatCurrency(day.dollar_loss)}
+                    <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-green-600 whitespace-nowrap">
+                      {day.dollar_gain > 0
+                        ? `+${formatCurrency(day.dollar_gain)}`
+                        : '-'}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-red-600 whitespace-nowrap">
+                    <td className="px-3 py-3 text-right font-mono text-xs md:text-sm text-green-600 whitespace-nowrap">
                       {day.percent_of_ath.toFixed(1)}%
                     </td>
                   </tr>
